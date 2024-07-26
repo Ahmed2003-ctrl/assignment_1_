@@ -1,0 +1,340 @@
+import getpass
+import json
+
+# تعريف الكلاسات
+
+class Course:
+    def __init__(self, id, name, duration, quizzes=None):
+        self.id = id
+        self.name = name
+        self.duration = duration
+        self.quizzes = quizzes or []
+
+    def display_info(self):
+        print(f"Course: {self.name}\nDuration: {self.duration} hours")
+
+    def add_quiz(self, quiz):
+        self.quizzes.append(quiz)
+
+    def get_quiz(self, quiz_id):
+        for quiz in self.quizzes:
+            if quiz['id'] == quiz_id:
+                return quiz
+        return None
+
+
+class User:
+    def __init__(self, id, name, email, password, enrolled_courses=None):
+        self.id = id
+        self.name = name
+        self.email = email
+        self.password = password
+        self.enrolled_courses = enrolled_courses or []
+
+    def enroll(self, course):
+        self.enrolled_courses.append(course)
+
+    def display_info(self):
+        print(f"Name: {self.name}\nEmail: {self.email}")
+        if self.enrolled_courses:
+            print("Enrolled Courses:")
+            for course in self.enrolled_courses:
+                course.display_info()
+        else:
+            print("No enrolled courses yet.")
+
+
+# تعريف الدوال المساعدة
+
+def load_courses():
+    with open('courses.json') as file:
+        courses_data = json.load(file)
+
+    courses = []
+    for course_data in courses_data:
+        course = Course(course_data['id'], course_data['name'], course_data['duration'], course_data['quizzes'])
+        courses.append(course)
+
+    return courses
+
+
+def load_users():
+    with open('users.json') as file:
+        users_data = json.load(file)
+
+    users = []
+    for user_data in users_data:
+        user = User(user_data['id'], user_data['name'], user_data['email'], user_data['password'], user_data['enrolled_courses'])
+        users.append(user)
+
+    return users
+
+
+def save_users(users):
+    users_data = []
+    for user in users:
+        user_data = {
+            'id': user.id,
+            'name': user.name,
+            'email': user.email,
+            'password': user.password,
+            'enrolled_courses': user.enrolled_courses
+        }
+        users_data.append(user_data)
+
+    with open('users.json', 'w') as file:
+        json.dump(users_data, file)
+
+
+# البرنامج الرئيسي
+
+def main():
+    print("Welcome to the e-learning program!")
+    print("Please enter your credentials to log in.")
+
+    users = load_users()
+
+    while True:
+        email = input("Email: ")
+        password = getpass.getpass("Password: ")
+
+        authenticated_user = None
+        for user in users:
+            if user.email == email and user.password == password:
+                authenticated_user = user
+                break
+
+        if authenticated_user:
+            print("\nWelcome, " + authenticated_user.name + "!")
+            break
+        else:
+            print("Invalid email or password. Please try again.")
+
+    courses = load_courses()
+
+    while True:
+        print("\nAvailable Actions:")
+        print("1. View Courses")
+        print("2. Enroll in a Course")
+        print("3. My Courses")
+        print("4. Log out")
+
+        choice = input("\nEnter the number of the action you want to perform: ")
+
+        if choice == '1':
+            print("\nAvailable Courses:")
+            for course in courses:
+                course.display_info()
+                print()
+
+        elif choice == '2':
+            print("\nEnroll in a Course:")
+            for i, course in enumerate(courses, 1):
+                print(f"{i}. {course.name}")
+
+            course_index = int(input("Enter the number of the course you want to enroll in: ")) - 1
+
+            if 0 <= course_index < len(courses):
+                course = courses[course_index]
+                authenticated_user.enroll(course)
+                print("Enrolled in " + course.name + " course.")
+                save_users(users)
+            else:
+                print("Invalid course number. Please try again.")
+
+        elif choice == '3':
+            print("\nMy Courses:")
+            authenticated_user.display_info()
+
+            if authenticated_user.enrolled_courses:
+                course_id = input("\nEnter the ID of the course you want to access: ")
+                enrolled_courses = authenticated_user.enrolled_courses
+
+                for course in enrolled_courses:
+                    if course.id == course_id:
+                        print(f"\nWelcome to the {course.name} course!")
+                        while True:
+                            print("\nCourse Actions:")
+                            print("1. View Course Information")
+                            print("2. Take a Quiz")
+                            print("3. Back to My Courses")
+
+                            course_choice = input("\nEnter the number of the action you want to perform: ")
+
+                            if course_choice == '1':
+                                course.display_info()
+
+                            elif course_choice == '2':
+                                quiz_id = input("Enter the ID of the quiz you want to take: ")
+                                quiz = course.get_quiz(quiz_id)
+
+                                if quiz:
+                                    print(f"\n--- Quiz: {quiz['title']} ---")
+                                    for i, question in enumerate(quiz['questions'], 1):
+                                        print(f"\nQuestion {i}: {question['text']}")
+                                        print("Options:")
+                                        for option in question['options']:
+                                            print(option)
+
+                                        answer = input("Your answer (enter the option number): ")
+                                        if answer == question['answer']:
+                                            print("Correct!")
+                                        else:
+                                            print("Incorrect.")
+
+                                else:
+                                    print("Quiz not found. Please try again.")
+
+                            elif course_choice == '3':
+                                break
+
+                            else:
+                                print("Invalid choice. Please try again.")
+
+                        break
+
+                else:
+                    print("Course not found. Please try again.")
+
+        elif choice == '4':
+            print("\nThank you for using the e-learning program!")
+            break
+
+        else:
+            print("Invalid choice. Please try again.")
+
+
+if __name__ == '__main__':
+    main()
+------------------------------------------------------------------------------
+[
+    {
+      "id": 1,
+      "name": "Python Programming",
+      "duration": 10,
+      "quizzes": [
+        {
+          "id": "qz1",
+          "title": "Python Basics Quiz",
+          "questions": [
+            {
+              "text": "What is the capital of France?",
+              "options": ["Paris", "Rome", "Madrid", "London"],
+              "answer": "1"
+            },
+            {
+              "text": "Which programming language is known as the 'mother of all languages'?",
+              "options": ["Python", "Java", "C++", "Assembly"],
+              "answer": "4"
+            }
+          ]
+        },
+        {
+          "id": "qz2",
+          "title": "Python Advanced Quiz",
+          "questions": [
+            {
+              "text": "What is the result of 2 + 2?",
+              "options": ["2", "3", "4", "5"],
+              "answer": "3"
+            },
+            {
+              "text": "What is the square root of 16?",
+              "options": ["2", "4", "8", "16"],
+              "answer": "2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Web Development",
+      "duration": 8,
+      "quizzes": [
+        {
+          "id": "qz3",
+          "title": "HTML Quiz",
+          "questions": [
+            {
+              "text": "What does HTML stand for?",
+              "options": ["Hyper Text Markup Language", "Highly Typed Markup Language", "Home Tool Markup Language", "Hyperlinks and Text Markup Language"],
+              "answer": "1"
+            },
+            {
+              "text": "What is the correct HTML element for the largest heading?",
+              "options": ["<heading>", "<h6>", "<h1>", "<head>"],
+              "answer": "3"
+            }
+          ]
+        },
+        {
+          "id": "qz4",
+          "title": "CSS Quiz",
+          "questions": [
+            {
+              "text": "What does CSS stand for?",
+              "options": ["Colorful Style Sheets", "Cascading Style Sheets", "Computer Style Sheets", "Creative Style Sheets"],
+              "answer": "2"
+            },
+            {
+              "text": "Which CSS property is used to change the background color?",
+              "options": ["background-color", "color", "text-color", "bgcolor"],
+              "answer": "1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+  ------------------------------------------------------
+[
+    {
+      "id": 1,
+      "name": "John Doe",
+      "email": "mamuhtadi2003@gmail.com",
+      "password": "1632003m",
+      "enrolled_courses": [
+        {
+          "id": 1,
+          "name": "Python Programming",
+          "duration": 10,
+          "quizzes": [
+            {
+              "id": "qz1",
+              "title": "Python Basics Quiz",
+              "questions": [
+                {
+                  "text": "What is the capital of France?",
+                  "options": ["Paris", "Rome", "Madrid", "London"],
+                  "answer": "1"
+                },
+                {
+                  "text": "Which programming language is known as the 'mother of all languages'?",
+                  "options": ["Python", "Java", "C++", "Assembly"],
+                  "answer": "4"
+                }
+              ]
+            },
+            {
+              "id": "qz2",
+              "title": "Python Advanced Quiz",
+              "questions": [
+                {
+                  "text": "What is the result of 2 + 2?",
+                  "options": ["2", "3", "4", "5"],
+                  "answer": "3"
+                },
+                {
+                  "text": "What is the square root of 16?",
+                  "options": ["2", "4", "8", "16"],
+                  "answer": "2"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+  
